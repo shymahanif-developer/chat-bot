@@ -1,0 +1,875 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Chat Bot</title>
+  <style>
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+    }
+
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+      background: #f0f2f5;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      min-height: 100vh;
+    }
+
+    .chat-container {
+      width: 420px;
+      max-width: 95vw;
+      height: 600px;
+      background: #fff;
+      border-radius: 12px;
+      box-shadow: 0 2px 16px rgba(0, 0, 0, 0.1);
+      display: flex;
+      flex-direction: column;
+      overflow: hidden;
+    }
+
+    .chat-header {
+      background: #d94a4a;
+      color: #fff;
+      padding: 16px 20px;
+      font-size: 18px;
+      font-weight: 600;
+    }
+
+    .chat-messages {
+      flex: 1;
+      overflow-y: auto;
+      padding: 16px;
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
+    }
+
+    .message {
+      max-width: 80%;
+      padding: 10px 14px;
+      border-radius: 16px;
+      font-size: 14px;
+      line-height: 1.4;
+      word-wrap: break-word;
+    }
+
+    .message.bot {
+      align-self: flex-start;
+      background: #e9ecef;
+      color: #333;
+      border-bottom-left-radius: 4px;
+      white-space: pre-wrap;
+    }
+
+    .message.user {
+      align-self: flex-end;
+      background: #d94a4a;
+      color: #fff;
+      border-bottom-right-radius: 4px;
+    }
+
+    .chat-input {
+      display: flex;
+      padding: 12px;
+      border-top: 1px solid #e9ecef;
+      gap: 8px;
+    }
+
+    .chat-input input {
+      flex: 1;
+      padding: 10px 14px;
+      border: 1px solid #ddd;
+      border-radius: 20px;
+      font-size: 14px;
+      outline: none;
+    }
+
+    .chat-input input:focus {
+      border-color: #d94a4a;
+    }
+
+    .chat-input button {
+      padding: 10px 20px;
+      background: #d94a4a;
+      color: #fff;
+      border: none;
+      border-radius: 20px;
+      font-size: 14px;
+      cursor: pointer;
+    }
+
+    .chat-input button:hover {
+      background: #c43a3a;
+    }
+
+    #micBtn {
+      width: 40px;
+      height: 40px;
+      padding: 0;
+      border-radius: 50%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      flex-shrink: 0;
+      transition: background 0.2s, box-shadow 0.2s;
+    }
+
+    #micBtn.listening {
+      background: #ff1a1a;
+      box-shadow: 0 0 0 4px rgba(255, 26, 26, 0.25);
+      animation: pulse 1.2s infinite;
+    }
+
+    @keyframes pulse {
+      0%   { box-shadow: 0 0 0 4px rgba(255, 26, 26, 0.25); }
+      50%  { box-shadow: 0 0 0 8px rgba(255, 26, 26, 0.1); }
+      100% { box-shadow: 0 0 0 4px rgba(255, 26, 26, 0.25); }
+    }
+
+    #micBtn svg {
+      width: 18px;
+      height: 18px;
+      fill: #fff;
+      pointer-events: none;
+    }
+
+    .quick-actions {
+      display: flex;
+      padding: 8px 12px 0;
+      gap: 8px;
+    }
+
+    .quick-btn {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      padding: 6px 14px;
+      background: #fff;
+      color: #d94a4a;
+      border: 1.5px solid #d94a4a;
+      border-radius: 20px;
+      font-size: 13px;
+      font-weight: 500;
+      cursor: pointer;
+      transition: all 0.2s;
+    }
+
+    .quick-btn:hover {
+      background: #d94a4a;
+      color: #fff;
+    }
+
+    .quick-btn:hover svg {
+      fill: #fff;
+    }
+
+    .quick-btn svg {
+      width: 16px;
+      height: 16px;
+      fill: #d94a4a;
+      transition: fill 0.2s;
+    }
+
+    .quick-form {
+      display: none;
+      padding: 10px 12px;
+      border-top: 1px solid #e9ecef;
+      background: #fafafa;
+      gap: 8px;
+      align-items: center;
+    }
+
+    .quick-form.active {
+      display: flex;
+    }
+
+    .quick-form label {
+      font-size: 12px;
+      font-weight: 600;
+      color: #666;
+      white-space: nowrap;
+    }
+
+    .quick-form input {
+      flex: 1;
+      padding: 7px 12px;
+      border: 1px solid #ddd;
+      border-radius: 16px;
+      font-size: 13px;
+      outline: none;
+    }
+
+    .quick-form input:focus {
+      border-color: #d94a4a;
+    }
+
+    .quick-form .go-btn {
+      padding: 7px 14px;
+      background: #d94a4a;
+      color: #fff;
+      border: none;
+      border-radius: 16px;
+      font-size: 13px;
+      cursor: pointer;
+      font-weight: 500;
+    }
+
+    .quick-form .go-btn:hover {
+      background: #c43a3a;
+    }
+
+    .quick-form .close-btn {
+      background: none;
+      border: none;
+      font-size: 18px;
+      color: #999;
+      cursor: pointer;
+      padding: 0 4px;
+      line-height: 1;
+    }
+
+    .quick-form .close-btn:hover {
+      color: #333;
+    }
+
+    .typing {
+      align-self: flex-start;
+      padding: 10px 14px;
+      background: #e9ecef;
+      border-radius: 16px;
+      border-bottom-left-radius: 4px;
+      font-size: 14px;
+      color: #999;
+    }
+  </style>
+</head>
+<body>
+  <div class="chat-container">
+    <div class="chat-header">Chat Bot</div>
+    <div class="chat-messages" id="messages"></div>
+
+    <div class="quick-actions">
+      <button class="quick-btn" id="weatherBtn">
+        <svg viewBox="0 0 24 24"><path d="M6.76 4.84l-1.8-1.79-1.41 1.41 1.79 1.79 1.42-1.41zM4 10.5H1v2h3v-2zm9-9.95h-2V3.5h2V.55zm7.45 3.91l-1.41-1.41-1.79 1.79 1.41 1.41 1.79-1.79zm-3.21 13.7l1.79 1.8 1.41-1.41-1.8-1.79-1.4 1.4zM20 10.5v2h3v-2h-3zm-8-5c-3.31 0-6 2.69-6 6s2.69 6 6 6 6-2.69 6-6-2.69-6-6-6zm-1 16.95h2V19.5h-2v2.95zm-7.45-3.91l1.41 1.41 1.79-1.8-1.41-1.41-1.79 1.8z"/></svg>
+        Weather
+      </button>
+      <button class="quick-btn" id="flightBtn">
+        <svg viewBox="0 0 24 24"><path d="M21 16v-2l-8-5V3.5c0-.83-.67-1.5-1.5-1.5S10 2.67 10 3.5V9l-8 5v2l8-2.5V19l-2 1.5V22l3.5-1 3.5 1v-1.5L13 19v-5.5l8 2.5z"/></svg>
+        Flights
+      </button>
+    </div>
+
+    <!-- Weather quick form -->
+    <div class="quick-form" id="weatherForm">
+      <label>City:</label>
+      <input type="text" id="weatherCity" placeholder="e.g. Tokyo" autocomplete="off">
+      <button class="go-btn" id="weatherGo">Search</button>
+      <button class="close-btn" id="weatherClose">&times;</button>
+    </div>
+
+    <!-- Flight quick form -->
+    <div class="quick-form" id="flightForm">
+      <label>From:</label>
+      <input type="text" id="flightFrom" placeholder="e.g. NYC" autocomplete="off" style="max-width: 90px;">
+      <label>To:</label>
+      <input type="text" id="flightTo" placeholder="e.g. Paris" autocomplete="off" style="max-width: 90px;">
+      <button class="go-btn" id="flightGo">Search</button>
+      <button class="close-btn" id="flightClose">&times;</button>
+    </div>
+
+    <div class="chat-input">
+      <input type="text" id="userInput" placeholder="Type or speak..." autocomplete="off">
+      <button id="micBtn" title="Voice input">
+        <svg viewBox="0 0 24 24"><path d="M12 14c1.66 0 3-1.34 3-3V5c0-1.66-1.34-3-3-3S9 3.34 9 5v6c0 1.66 1.34 3 3 3zm-1-9c0-.55.45-1 1-1s1 .45 1 1v6c0 .55-.45 1-1 1s-1-.45-1-1V5zm6 6c0 2.76-2.24 5-5 5s-5-2.24-5-5H5c0 3.53 2.61 6.43 6 6.92V21h2v-3.08c3.39-.49 6-3.39 6-6.92h-2z"/></svg>
+      </button>
+      <button id="sendBtn">Send</button>
+    </div>
+  </div>
+
+  <script>
+    const messagesEl = document.getElementById('messages');
+    const inputEl = document.getElementById('userInput');
+    const sendBtn = document.getElementById('sendBtn');
+
+    // ── Conversation Memory ──
+    const MEMORY_KEY = 'chatbot_memory';
+    const memory = JSON.parse(localStorage.getItem(MEMORY_KEY) || '{}');
+
+    function saveMemory() {
+      localStorage.setItem(MEMORY_KEY, JSON.stringify(memory));
+    }
+
+    function extractMemory(text) {
+      const lower = text.toLowerCase();
+      let found = null;
+
+      // Name detection
+      const namePatterns = [
+        /my name is\s+(.+)/i,
+        /i'm\s+(\w+)/i,
+        /call me\s+(.+)/i,
+        /i am\s+(\w+)/i
+      ];
+      for (const p of namePatterns) {
+        const m = text.match(p);
+        if (m) {
+          const name = m[1].trim().replace(/[.!?,]+$/, '');
+          if (name.length > 1 && name.length < 30) {
+            memory.name = name.charAt(0).toUpperCase() + name.slice(1);
+            found = `I'll remember your name, ${memory.name}!`;
+            break;
+          }
+        }
+      }
+
+      // Favorite thing detection
+      const favPatterns = [
+        /my favou?rite\s+(\w+)\s+is\s+(.+)/i,
+        /i (?:love|like|enjoy)\s+(.+)/i
+      ];
+      if (!found) {
+        const favMatch = text.match(favPatterns[0]);
+        if (favMatch) {
+          const category = favMatch[1].toLowerCase().trim();
+          const value = favMatch[2].trim().replace(/[.!?,]+$/, '');
+          if (!memory.favorites) memory.favorites = {};
+          memory.favorites[category] = value;
+          found = `Got it! Your favorite ${category} is ${value}. I'll remember that!`;
+        } else {
+          const likeMatch = text.match(favPatterns[1]);
+          if (likeMatch) {
+            const thing = likeMatch[1].trim().replace(/[.!?,]+$/, '');
+            if (!memory.likes) memory.likes = [];
+            if (!memory.likes.includes(thing.toLowerCase())) {
+              memory.likes.push(thing.toLowerCase());
+            }
+            found = `Nice! I'll remember that you like ${thing}.`;
+          }
+        }
+      }
+
+      // Location detection
+      const locPatterns = [
+        /i (?:live|stay|am) (?:in|at|from)\s+(.+)/i,
+        /i'm from\s+(.+)/i
+      ];
+      if (!found) {
+        for (const p of locPatterns) {
+          const m = text.match(p);
+          if (m) {
+            memory.location = m[1].trim().replace(/[.!?,]+$/, '');
+            found = `Nice! I'll remember you're from ${memory.location}.`;
+            break;
+          }
+        }
+      }
+
+      // Age detection
+      if (!found) {
+        const ageMatch = text.match(/i(?:'m| am)\s+(\d{1,3})\s*(?:years?\s*old)?/i);
+        if (ageMatch && parseInt(ageMatch[1]) > 0 && parseInt(ageMatch[1]) < 150) {
+          memory.age = ageMatch[1];
+          found = `Got it, you're ${memory.age} years old. Noted!`;
+        }
+      }
+
+      // Job / occupation
+      if (!found) {
+        const jobMatch = text.match(/i (?:work as|am) (?:a |an )?(.+?)(?:\s+at\s+(.+))?$/i);
+        if (jobMatch && !['fine', 'good', 'great', 'ok', 'okay', 'happy', 'sad', 'tired', 'bored'].includes(jobMatch[1].toLowerCase().trim())) {
+          memory.job = jobMatch[1].trim().replace(/[.!?,]+$/, '');
+          if (jobMatch[2]) memory.company = jobMatch[2].trim().replace(/[.!?,]+$/, '');
+          found = memory.company
+            ? `Cool! You work as a ${memory.job} at ${memory.company}. I'll remember that!`
+            : `Cool! You're a ${memory.job}. I'll remember that!`;
+        }
+      }
+
+      if (found) saveMemory();
+      return found;
+    }
+
+    function getMemorySummary() {
+      const parts = [];
+      if (memory.name) parts.push(`Your name is ${memory.name}.`);
+      if (memory.age) parts.push(`You're ${memory.age} years old.`);
+      if (memory.location) parts.push(`You're from ${memory.location}.`);
+      if (memory.job) {
+        parts.push(memory.company
+          ? `You work as a ${memory.job} at ${memory.company}.`
+          : `You're a ${memory.job}.`);
+      }
+      if (memory.favorites) {
+        for (const [cat, val] of Object.entries(memory.favorites)) {
+          parts.push(`Your favorite ${cat} is ${val}.`);
+        }
+      }
+      if (memory.likes && memory.likes.length > 0) {
+        parts.push(`You like: ${memory.likes.join(', ')}.`);
+      }
+      if (parts.length === 0) return "I don't remember anything about you yet. Tell me about yourself!";
+      return "Here's what I remember about you:\n\n" + parts.join('\n');
+    }
+
+    function isMemoryRecall(text) {
+      const lower = text.toLowerCase();
+      return /what do you (?:remember|know) about me/i.test(lower)
+        || /what(?:'s| is) my (\w+)/i.test(lower)
+        || /do you (?:remember|know) (?:my|me)/i.test(lower)
+        || lower === 'memory';
+    }
+
+    function handleMemoryRecall(text) {
+      const lower = text.toLowerCase();
+      const specificMatch = lower.match(/what(?:'s| is) my (\w+)/);
+      if (specificMatch) {
+        const key = specificMatch[1];
+        if (key === 'name' && memory.name) return `Your name is ${memory.name}!`;
+        if (key === 'age' && memory.age) return `You're ${memory.age} years old!`;
+        if ((key === 'location' || key === 'city') && memory.location) return `You're from ${memory.location}!`;
+        if (key === 'job' && memory.job) return `You're a ${memory.job}${memory.company ? ' at ' + memory.company : ''}!`;
+        if (key === 'favorite' || key === 'favourite') {
+          if (memory.favorites && Object.keys(memory.favorites).length > 0) {
+            return Object.entries(memory.favorites).map(([k, v]) => `Your favorite ${k} is ${v}`).join('\n');
+          }
+        }
+        return `I don't know your ${key} yet. Tell me!`;
+      }
+      return getMemorySummary();
+    }
+
+    function clearMemory() {
+      Object.keys(memory).forEach(k => delete memory[k]);
+      localStorage.removeItem(MEMORY_KEY);
+      return "Memory cleared! I've forgotten everything about you.";
+    }
+
+    const responses = [
+      {
+        patterns: ['hello', 'hi', 'hey', 'howdy', 'greetings'],
+        replies: [
+          "Hello! How can I help you today?",
+          "Hi there! What's on your mind?",
+          "Hey! Nice to chat with you."
+        ]
+      },
+      {
+        patterns: ['how are you', "how's it going", 'how do you do'],
+        replies: [
+          "I'm doing great, thanks for asking! How about you?",
+          "All good on my end! What can I do for you?",
+          "Running smoothly! How are you doing?"
+        ]
+      },
+      {
+        patterns: ['your name', 'who are you', 'what are you'],
+        replies: [
+          "I'm a simple chat bot built with JavaScript!",
+          "I'm ChatBot, your friendly assistant.",
+          "Just a humble JavaScript chat bot at your service."
+        ]
+      },
+      {
+        patterns: ['help', 'what can you do', 'features'],
+        replies: [
+          "Here's what I can do:\n- Weather: \"weather in Tokyo\"\n- Flights: \"flights from NYC to Paris\"\n- Memory: Tell me your name, favorites, etc.\n- Recall: \"what do you remember about me\"\n- Clear: \"forget my memory\"\n- Plus jokes, time, and casual chat!"
+        ]
+      },
+      {
+        patterns: ['joke', 'funny', 'laugh', 'humor'],
+        replies: [
+          "Why do programmers prefer dark mode? Because light attracts bugs!",
+          "Why did the JavaScript developer wear glasses? Because he couldn't C#.",
+          "What's a computer's favorite snack? Microchips!"
+        ]
+      },
+      {
+        patterns: ['flight', 'flights', 'fly'],
+        replies: ['__FLIGHTS__']
+      },
+      {
+        patterns: ['weather', 'temperature', 'forecast'],
+        replies: ['__WEATHER__']
+      },
+      {
+        patterns: ['bye', 'goodbye', 'see you', 'quit', 'exit'],
+        replies: [
+          "Goodbye! Have a great day!",
+          "See you later! It was nice chatting.",
+          "Bye! Come back anytime."
+        ]
+      },
+      {
+        patterns: ['thanks', 'thank you', 'appreciate'],
+        replies: [
+          "You're welcome!",
+          "Happy to help!",
+          "Anytime! That's what I'm here for."
+        ]
+      },
+      {
+        patterns: ['time', 'date', 'day'],
+        replies: [
+          `The current time is ${new Date().toLocaleTimeString()} and today is ${new Date().toLocaleDateString()}.`,
+          `Right now it's ${new Date().toLocaleString()}.`
+        ]
+      }
+    ];
+
+    const fallbackReplies = [
+      "Interesting! Tell me more.",
+      "I'm not sure I understand. Could you rephrase that?",
+      "That's a good point! What else is on your mind?",
+      "Hmm, I don't have a great answer for that. Try asking something else!",
+      "I'm still learning. Could you try a different question?"
+    ];
+
+    function pickRandom(arr) {
+      return arr[Math.floor(Math.random() * arr.length)];
+    }
+
+    const weatherCodes = {
+      0: 'Clear sky', 1: 'Mainly clear', 2: 'Partly cloudy', 3: 'Overcast',
+      45: 'Foggy', 48: 'Rime fog', 51: 'Light drizzle', 53: 'Moderate drizzle',
+      55: 'Dense drizzle', 61: 'Slight rain', 63: 'Moderate rain', 65: 'Heavy rain',
+      71: 'Slight snow', 73: 'Moderate snow', 75: 'Heavy snow', 80: 'Slight showers',
+      81: 'Moderate showers', 82: 'Violent showers', 95: 'Thunderstorm',
+      96: 'Thunderstorm with hail', 99: 'Thunderstorm with heavy hail'
+    };
+
+    function extractCity(text) {
+      const lower = text.toLowerCase();
+      const patterns = [
+        /weather\s+(?:in|at|for)\s+(.+)/i,
+        /temperature\s+(?:in|at|for)\s+(.+)/i,
+        /forecast\s+(?:in|at|for)\s+(.+)/i,
+        /(?:in|at|for)\s+(.+?)\s*(?:weather|temperature|forecast)/i
+      ];
+      for (const p of patterns) {
+        const match = lower.match(p);
+        if (match) return match[1].trim();
+      }
+      return null;
+    }
+
+    async function fetchWeather(city) {
+      const geoRes = await fetch(
+        `https://geocoding-api.open-meteo.com/v1/search?name=${encodeURIComponent(city)}&count=1`
+      );
+      const geoData = await geoRes.json();
+      if (!geoData.results || geoData.results.length === 0) {
+        return `Sorry, I couldn't find a location called "${city}". Try another city name.`;
+      }
+      const { latitude, longitude, name, country } = geoData.results[0];
+      const weatherRes = await fetch(
+        `https://api.open-meteo.com/v1/forecast?latitude=${latitude}&longitude=${longitude}&current=temperature_2m,relative_humidity_2m,wind_speed_10m,weather_code`
+      );
+      const weatherData = await weatherRes.json();
+      const c = weatherData.current;
+      const condition = weatherCodes[c.weather_code] || 'Unknown';
+      return `Weather in ${name}, ${country}:\n` +
+        `${condition}, ${c.temperature_2m}°C\n` +
+        `Humidity: ${c.relative_humidity_2m}% | Wind: ${c.wind_speed_10m} km/h`;
+    }
+
+    const airlines = [
+      'Emirates', 'Delta', 'United Airlines', 'British Airways',
+      'Lufthansa', 'Air France', 'Singapore Airlines', 'Qatar Airways',
+      'Turkish Airlines', 'JetBlue'
+    ];
+
+    function extractFlightRoute(text) {
+      const match = text.match(/(?:flight[s]?|fly)\s+from\s+(.+?)\s+to\s+(.+)/i);
+      if (match) return { from: match[1].trim(), to: match[2].trim() };
+      return null;
+    }
+
+    function generateFlightResults(from, to) {
+      const results = [];
+      const usedAirlines = [];
+      for (let i = 0; i < 3; i++) {
+        let airline;
+        do {
+          airline = pickRandom(airlines);
+        } while (usedAirlines.includes(airline));
+        usedAirlines.push(airline);
+
+        const depHour = Math.floor(Math.random() * 24);
+        const depMin = Math.floor(Math.random() * 60);
+        const duration = 2 + Math.floor(Math.random() * 14);
+        const arrHour = (depHour + duration) % 24;
+        const arrMin = Math.floor(Math.random() * 60);
+        const price = 200 + Math.floor(Math.random() * 1300);
+
+        const fmt = (h, m) => `${String(h).padStart(2, '0')}:${String(m).padStart(2, '0')}`;
+        results.push(
+          `${airline}\n` +
+          `  ${fmt(depHour, depMin)} → ${fmt(arrHour, arrMin)} (${duration}h)\n` +
+          `  $${price}`
+        );
+      }
+      const capitalize = s => s.replace(/\b\w/g, c => c.toUpperCase());
+      return `Flights from ${capitalize(from)} to ${capitalize(to)}:\n\n` + results.join('\n\n');
+    }
+
+    function getBotReply(userText) {
+      const lower = userText.toLowerCase();
+      for (const entry of responses) {
+        if (entry.patterns.some(p => lower.includes(p))) {
+          if (entry.replies[0] === '__FLIGHTS__') return '__FLIGHTS__';
+          if (entry.replies[0] === '__WEATHER__') return '__WEATHER__';
+          return pickRandom(entry.replies);
+        }
+      }
+      return pickRandom(fallbackReplies);
+    }
+
+    function addMessage(text, sender) {
+      const msg = document.createElement('div');
+      msg.classList.add('message', sender);
+      msg.textContent = text;
+      messagesEl.appendChild(msg);
+      messagesEl.scrollTop = messagesEl.scrollHeight;
+    }
+
+    function showTyping() {
+      const typing = document.createElement('div');
+      typing.classList.add('typing');
+      typing.id = 'typing';
+      typing.textContent = 'Bot is typing...';
+      messagesEl.appendChild(typing);
+      messagesEl.scrollTop = messagesEl.scrollHeight;
+    }
+
+    function removeTyping() {
+      const typing = document.getElementById('typing');
+      if (typing) typing.remove();
+    }
+
+    async function handleSend() {
+      const text = inputEl.value.trim();
+      if (!text) return;
+
+      addMessage(text, 'user');
+      inputEl.value = '';
+      inputEl.focus();
+      showTyping();
+
+      // Memory: check for recall or clear
+      if (isMemoryRecall(text)) {
+        const delay = 300 + Math.random() * 500;
+        setTimeout(() => { removeTyping(); addMessage(handleMemoryRecall(text), 'bot'); }, delay);
+        return;
+      }
+      if (/(?:forget|clear|reset)\s*(?:my)?\s*memory/i.test(text.toLowerCase())) {
+        const delay = 300 + Math.random() * 500;
+        setTimeout(() => { removeTyping(); addMessage(clearMemory(), 'bot'); }, delay);
+        return;
+      }
+
+      // Memory: try to extract facts from user message
+      const memoryResult = extractMemory(text);
+
+      const reply = getBotReply(text);
+
+      // Personalize greeting with name
+      let finalReply = reply;
+      if (memory.name && ['hello', 'hi', 'hey', 'howdy', 'greetings'].some(g => text.toLowerCase().includes(g))) {
+        finalReply = reply.replace(/(!|\?)/, `, ${memory.name}$1`);
+      }
+
+      if (memoryResult && reply !== '__FLIGHTS__' && reply !== '__WEATHER__') {
+        const delay = 300 + Math.random() * 500;
+        setTimeout(() => { removeTyping(); addMessage(memoryResult, 'bot'); }, delay);
+        return;
+      }
+
+      if (finalReply === '__FLIGHTS__') {
+        const route = extractFlightRoute(text);
+        if (!route) {
+          removeTyping();
+          addMessage('Try: "flights from London to Paris"', 'bot');
+          return;
+        }
+        const delay = 500 + Math.random() * 1000;
+        setTimeout(() => {
+          removeTyping();
+          addMessage(generateFlightResults(route.from, route.to), 'bot');
+        }, delay);
+      } else if (finalReply === '__WEATHER__') {
+        const city = extractCity(text);
+        if (!city) {
+          removeTyping();
+          addMessage("Which city? Try: \"weather in Tokyo\"", 'bot');
+          return;
+        }
+        try {
+          const weatherReply = await fetchWeather(city);
+          removeTyping();
+          addMessage(weatherReply, 'bot');
+        } catch {
+          removeTyping();
+          addMessage("Sorry, I couldn't fetch weather data right now. Try again later.", 'bot');
+        }
+      } else {
+        const delay = 500 + Math.random() * 1000;
+        setTimeout(() => {
+          removeTyping();
+          addMessage(finalReply, 'bot');
+        }, delay);
+      }
+    }
+
+    // ── Voice Input (Speech to Text) ──
+    const micBtn = document.getElementById('micBtn');
+    const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
+    let recognition = null;
+    let isListening = false;
+
+    if (SpeechRecognition) {
+      recognition = new SpeechRecognition();
+      recognition.lang = 'en-US';
+      recognition.interimResults = true;
+      recognition.continuous = false;
+
+      recognition.onstart = () => {
+        isListening = true;
+        micBtn.classList.add('listening');
+        inputEl.placeholder = 'Listening...';
+      };
+
+      recognition.onresult = (event) => {
+        let transcript = '';
+        for (let i = event.resultIndex; i < event.results.length; i++) {
+          transcript += event.results[i][0].transcript;
+        }
+        inputEl.value = transcript;
+        if (event.results[event.results.length - 1].isFinal) {
+          stopListening();
+          handleSend();
+        }
+      };
+
+      recognition.onerror = (event) => {
+        stopListening();
+        if (event.error === 'not-allowed') {
+          addMessage("Microphone access denied. Please allow microphone permissions.", 'bot');
+        } else if (event.error !== 'aborted') {
+          addMessage("Couldn't hear you. Please try again.", 'bot');
+        }
+      };
+
+      recognition.onend = () => {
+        stopListening();
+      };
+    } else {
+      micBtn.style.display = 'none';
+    }
+
+    function stopListening() {
+      isListening = false;
+      micBtn.classList.remove('listening');
+      inputEl.placeholder = 'Type or speak...';
+    }
+
+    micBtn.addEventListener('click', () => {
+      if (!recognition) return;
+      if (isListening) {
+        recognition.abort();
+        stopListening();
+      } else {
+        inputEl.value = '';
+        recognition.start();
+      }
+    });
+
+    sendBtn.addEventListener('click', handleSend);
+    inputEl.addEventListener('keydown', (e) => {
+      if (e.key === 'Enter') handleSend();
+    });
+
+    // ── Quick Action Buttons ──
+    const weatherFormEl = document.getElementById('weatherForm');
+    const flightFormEl = document.getElementById('flightForm');
+
+    function closeAllForms() {
+      weatherFormEl.classList.remove('active');
+      flightFormEl.classList.remove('active');
+    }
+
+    document.getElementById('weatherBtn').addEventListener('click', () => {
+      const isOpen = weatherFormEl.classList.contains('active');
+      closeAllForms();
+      if (!isOpen) {
+        weatherFormEl.classList.add('active');
+        document.getElementById('weatherCity').value = '';
+        document.getElementById('weatherCity').focus();
+      }
+    });
+
+    document.getElementById('flightBtn').addEventListener('click', () => {
+      const isOpen = flightFormEl.classList.contains('active');
+      closeAllForms();
+      if (!isOpen) {
+        flightFormEl.classList.add('active');
+        document.getElementById('flightFrom').value = '';
+        document.getElementById('flightTo').value = '';
+        document.getElementById('flightFrom').focus();
+      }
+    });
+
+    document.getElementById('weatherClose').addEventListener('click', closeAllForms);
+    document.getElementById('flightClose').addEventListener('click', closeAllForms);
+
+    async function handleWeatherSearch() {
+      const city = document.getElementById('weatherCity').value.trim();
+      if (!city) return;
+      closeAllForms();
+      addMessage(`weather in ${city}`, 'user');
+      showTyping();
+      try {
+        const result = await fetchWeather(city);
+        removeTyping();
+        addMessage(result, 'bot');
+      } catch {
+        removeTyping();
+        addMessage("Sorry, I couldn't fetch weather data right now. Try again later.", 'bot');
+      }
+    }
+
+    function handleFlightSearch() {
+      const from = document.getElementById('flightFrom').value.trim();
+      const to = document.getElementById('flightTo').value.trim();
+      if (!from || !to) return;
+      closeAllForms();
+      addMessage(`flights from ${from} to ${to}`, 'user');
+      showTyping();
+      const delay = 500 + Math.random() * 1000;
+      setTimeout(() => {
+        removeTyping();
+        addMessage(generateFlightResults(from, to), 'bot');
+      }, delay);
+    }
+
+    document.getElementById('weatherGo').addEventListener('click', handleWeatherSearch);
+    document.getElementById('weatherCity').addEventListener('keydown', (e) => {
+      if (e.key === 'Enter') handleWeatherSearch();
+    });
+
+    document.getElementById('flightGo').addEventListener('click', handleFlightSearch);
+    document.getElementById('flightTo').addEventListener('keydown', (e) => {
+      if (e.key === 'Enter') handleFlightSearch();
+    });
+
+    const greeting = memory.name
+      ? `Welcome back, ${memory.name}! I still remember you. Type "help" to see what I can do.`
+      : "Hello! I'm ChatBot. Tell me your name to get started, or type \"help\" to see what I can do!";
+    addMessage(greeting, 'bot');
+  </script>
+</body>
+</html>
